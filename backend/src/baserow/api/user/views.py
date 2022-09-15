@@ -162,8 +162,8 @@ class UserView(APIView):
         request=RegisterSerializer,
         operation_id="create_user",
         description=(
-            "Creates a new user based on the provided values. If desired a "
-            "JWT authentication token can be generated right away. After creating an "
+            "Creates a new user based on the provided values. If desired an "
+            "authentication JWT can be generated right away. After creating an "
             "account the initial group containing a database is created."
         ),
         responses={

@@ -84,7 +84,7 @@
         "showDatabases": "show databases"
     },
     "apiTokenSettings": {
-        "title": "Personal API tokens",
+        "title": "Database API tokens",
         "createToken": "Create token",
         "noTokensMessage": "You have not yet created an API token. You can use API tokens to authenticate with the REST API endpoints where you can create, read, update and delete rows. It is possible to set permissions on table level.",
         "hasFullPermissions": "Has full permissions, also to all children.",
@@ -157,7 +157,7 @@
         "pythonClient": "Python example API client:"
     },
     "apiDocsTableListFields": {
-        "description": "To list fields of the {name} table a `GET` request has to be made to the {name} fields endpoint. It's only possible to list the fields if the token has read, create or update permissions.",
+        "description": "To list fields of the {name} table a `GET` request has to be made to the {name} fields endpoint. It's only possible to list the fields if the database API token has read, create or update permissions.",
         "resultFieldProperties": "Result field properties",
         "id": "Field primary key. Can be used to generate the database column name by adding `field_` prefix.",
         "name": "Field name.",
@@ -206,7 +206,7 @@
         "before": "If provided then the newly created rows will be positioned before the row with the provided id."
     },
     "apiDocsAuth": {
-        "description": "Baserow uses a simple token based authentication. You need to generate at least one API token in your {settingsLink} to use the endpoints described below. It is possible to give create, read, update and delete permissions up until table level per token. You can authenticate to the API by providing your API token in the HTTP authorization bearer token header. All API requests must be authenticated and made over HTTPS.",
+        "description": "Baserow uses a simple token based authentication. You need to generate at least one database API token in your {settingsLink} to use the endpoints described below. It is possible to give create, read, update and delete permissions up until table level per token. You can authenticate to the API by providing your token in the HTTP authorization bearer token header. All API requests must be authenticated and made over HTTPS.",
         "settingsLink": "settings"
     },
     "apiDocsFilters": {

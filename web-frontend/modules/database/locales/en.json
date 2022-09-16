@@ -119,7 +119,7 @@
         "description": "Description",
         "okDescription": "Request completed successfully.",
         "badRequestDescription": "The request contains invalid values or the JSON could not be parsed.",
-        "unauthorizedDescription": "When you try to access an endpoint without valid token.",
+        "unauthorizedDescription": "When you try to access an endpoint without a valid database token.",
         "notFoundDescription": "Row or table is not found.",
         "requestEntityTooLargeDescription": "The request exceeded the maximum allowed payload size.",
         "internalErrorDescription": "The server encountered an unexpected condition.",

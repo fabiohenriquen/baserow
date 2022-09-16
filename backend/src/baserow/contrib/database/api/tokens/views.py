@@ -188,7 +188,7 @@ class TokenView(APIView):
         tags=["Database tokens"],
         operation_id="delete_database_token",
         description=(
-            "Deletes the existing token if it is owned by the authorized user and if"
+            "Deletes the existing database token if it is owned by the authorized user and if"
             "the user has access to the related group."
         ),
         responses={

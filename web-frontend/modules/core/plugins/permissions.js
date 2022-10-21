@@ -8,12 +8,19 @@ export default function ({ app }, inject) {
    * @returns True ift he operation is permitted, false otherwise.
    */
   const hasPermission = (operation, context) => {
-    const perms = app.store.getters['permissions/get']
+    const { store, $registry } = app
+
+    const loaded = store.getters['permissions/isLoaded']
+    if (!loaded) {
+      return false
+    }
+
+    const perms = store.getters['permissions/get']
 
     // Check all permission managers whether one accepts or refuses the operation
     for (const perm of perms) {
       const { name, permissions } = perm
-      const manager = app.$registry.get('permissionManager', name)
+      const manager = $registry.get('permissionManager', name)
       const result = manager.hasPermission(permissions, operation, context)
 
       if ([true, false].includes(result)) {
@@ -27,7 +34,7 @@ export default function ({ app }, inject) {
       }
     }
     // None of the managers has given a response.
-    console.debug('Permission', operation, context, 'refused', `by default`)
+    console.debug('Permission', operation, 'refused', `by default`)
     return false
   }
   inject('hasPermission', hasPermission)

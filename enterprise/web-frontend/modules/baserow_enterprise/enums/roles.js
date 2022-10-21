@@ -3,5 +3,5 @@ export const roles = [
   { name: 'Builder', uid: 'builder' },
   { name: 'Editor', uid: 'editor' },
   { name: 'Viewer', uid: 'viewer' },
-  { name: 'Commentor', uid: 'commentor' },
+  { name: 'Commenter', uid: 'commenter' },
 ]

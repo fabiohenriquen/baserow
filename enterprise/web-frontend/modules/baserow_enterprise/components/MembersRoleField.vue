@@ -1,6 +1,11 @@
 <template>
   <div>
-    <span v-if="column.additionalProps.userId === row.user_id">
+    <span
+      v-if="
+        column.additionalProps.userId === row.user_id ||
+        !$hasPermission('group_user.update', row)
+      "
+    >
       {{ roleName(roles, row) }}
     </span>
     <a

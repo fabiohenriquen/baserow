@@ -1,6 +1,6 @@
 import { AuthProviderType } from '@baserow/modules/core/authProviderTypes'
 import SamlLoginAction from '@baserow_enterprise/components/admin/login/SamlLoginAction'
-import ProviderItem from '@baserow_enterprise/components/admin/AuthProviderItem'
+import AuthProviderItem from '@baserow_enterprise/components/admin/AuthProviderItem'
 import SamlSettingsForm from '@baserow_enterprise/components/admin/forms/SamlSettingsForm'
 
 export class SamlAuthProviderType extends AuthProviderType {
@@ -13,11 +13,11 @@ export class SamlAuthProviderType extends AuthProviderType {
   }
 
   getName() {
-    return 'SAML SSO provider'
+    return 'SSO SAML provider'
   }
 
   getProviderName(provider) {
-    return `SAML: ${provider.domain}`
+    return `SSO SAML: ${provider.domain}`
   }
 
   getLoginActionComponent() {
@@ -25,7 +25,7 @@ export class SamlAuthProviderType extends AuthProviderType {
   }
 
   getAdminListComponent() {
-    return ProviderItem
+    return AuthProviderItem
   }
 
   getAdminSettingsFormComponent() {

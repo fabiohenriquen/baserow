@@ -14,12 +14,12 @@ class AuthProviderModel(
     content_type = models.ForeignKey(
         ContentType,
         verbose_name="content type",
-        related_name="authentication_providers",
+        related_name="auth_providers",
         on_delete=models.CASCADE,
     )
     users = models.ManyToManyField(
         "auth.User",
-        related_name="authentication_providers",
+        related_name="auth_providers",
         help_text=("The users that have been authenticated with this provider."),
     )
 

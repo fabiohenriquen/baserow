@@ -1,10 +1,12 @@
 <template>
   <Modal>
     <h2 class="box__title">
-      {{ $t('deleteAuthProviderModal.title', { type: getProviderTypeName() }) }}
+      {{ $t('deleteAuthProviderModal.title', { name: getProviderName() }) }}
     </h2>
     <p>
-      {{ $t('deleteAuthProviderModal.comment') }}
+      {{
+        $t('deleteAuthProviderModal.comment', { type: getProviderTypeName() })
+      }}
     </p>
     <div class="context__form-actions context__form-actions--multiple-actions">
       <a @click="$emit('cancel')">{{ $t('action.cancel') }}</a>
@@ -39,10 +41,15 @@ export default {
     }
   },
   methods: {
+    getProviderName() {
+      return this.$registry
+        .get('authProvider', this.authProvider.type)
+        .getProviderName(this.authProvider)
+    },
     getProviderTypeName() {
       return this.$registry
         .get('authProvider', this.authProvider.type)
-        .getName()
+        .getName(this.authProvider)
     },
     async deleteProvider() {
       this.loading = true

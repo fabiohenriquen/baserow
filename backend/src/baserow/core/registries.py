@@ -319,6 +319,14 @@ class AuthenticationProviderTypeRegistry(
     def get_default(self):
         return self._default
 
+    def get_all_available_login_options(self):
+        login_options = {}
+        for provider in self.get_all():
+            provider_login_options = provider.get_login_options()
+            if provider_login_options:
+                login_options[provider.type] = provider_login_options
+        return login_options
+
 
 # A default plugin and application registry is created here, this is the one that is
 # used throughout the whole Baserow application. To add a new plugin or application use

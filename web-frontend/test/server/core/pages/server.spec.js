@@ -28,6 +28,10 @@ describe('index redirect', () => {
       },
     })
 
+    mock
+      .onGet('http://localhost/api/auth-provider/login-options/')
+      .reply(200, {})
+
     nuxt = await createNuxt(true)
     done()
   }, 300000)

@@ -1,5 +1,6 @@
 import { AdminType } from '@baserow/modules/core/adminTypes'
 import { PremiumPlugin } from '@baserow_premium/plugins'
+// import EnterpriseFeatures from '@baserow_enterprise/features'
 
 class EnterpriseAdminType extends AdminType {
   getDeactivatedText() {
@@ -7,7 +8,7 @@ class EnterpriseAdminType extends AdminType {
   }
 
   isDeactivated() {
-    // TODO: change with enterprise license
+    // !this.app.$hasFeature(EnterpriseFeatures.SSO)
     return !this.app.$registry
       .get('plugin', PremiumPlugin.getType())
       .activeLicenseHasPremiumFeatures()

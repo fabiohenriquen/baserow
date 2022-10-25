@@ -3,8 +3,6 @@ from urllib.request import Request
 
 from django.db import transaction
 
-from baserow_enterprise.auth_provider.handler import AuthProviderHandler
-from baserow_enterprise.license.handler import check_active_enterprise_license
 from drf_spectacular.openapi import OpenApiParameter, OpenApiTypes
 from drf_spectacular.utils import extend_schema
 from rest_framework.permissions import IsAdminUser
@@ -20,6 +18,8 @@ from baserow.api.utils import (
 )
 from baserow.core.auth_provider.exceptions import AuthProviderModelNotFound
 from baserow.core.registries import auth_provider_type_registry
+from baserow_enterprise.auth_provider.handler import AuthProviderHandler
+from baserow_enterprise.license.handler import check_sso_feature_is_active_or_raise
 
 from .errors import ERROR_AUTH_PROVIDER_DOES_NOT_EXIST
 from .serializers import CreateAuthProviderSerializer, UpdateAuthProviderSerializer
@@ -33,7 +33,7 @@ class AdminAuthProvidersView(APIView):
         request=None,
         operation_id="create_auth_provider",
         description=(
-            "Creates a new authentication Provider. This can be used to enable "
+            "Creates a new authentication provider. This can be used to enable "
             "authentication with a third party service like Google or Facebook."
         ),
         responses={
@@ -49,9 +49,9 @@ class AdminAuthProvidersView(APIView):
         base_serializer_class=CreateAuthProviderSerializer,
     )
     def post(self, request: Request, data: Dict[str, Any]) -> Response:
-        """Create a new Authentication Provider."""
+        """Create a new authentication provider."""
 
-        check_active_enterprise_license(request.user)
+        check_sso_feature_is_active_or_raise()
 
         provider_type = data.pop("type")
         auth_provider_type = auth_provider_type_registry.get(provider_type)
@@ -77,9 +77,9 @@ class AdminAuthProvidersView(APIView):
     )
     @transaction.atomic
     def get(self, request: Request) -> Response:
-        """List all Authentication Providers."""
+        """List all authentication providers."""
 
-        check_active_enterprise_license(request.user)
+        check_sso_feature_is_active_or_raise()
 
         auth_providers = []
         for auth_provider_type in auth_provider_type_registry.get_all():
@@ -122,7 +122,7 @@ class AdminAuthProviderView(APIView):
     def patch(self, request, auth_provider_id: int):
         """Update a new authentication provider."""
 
-        check_active_enterprise_license(request.user)
+        check_sso_feature_is_active_or_raise()
 
         handler = AuthProviderHandler()
         provider = handler.get_auth_provider(auth_provider_id)
@@ -168,7 +168,7 @@ class AdminAuthProviderView(APIView):
     def get(self, request: Request, auth_provider_id: int) -> Response:
         """Get the requested authentication providers."""
 
-        check_active_enterprise_license(request.user)
+        check_sso_feature_is_active_or_raise()
 
         provider = AuthProviderHandler().get_auth_provider(auth_provider_id)
         provider_type = auth_provider_type_registry.get_by_model(provider)
@@ -204,7 +204,7 @@ class AdminAuthProviderView(APIView):
     def delete(self, request: Request, auth_provider_id: int) -> Response:
         """Delete the requested authentication provider."""
 
-        check_active_enterprise_license(request.user)
+        check_sso_feature_is_active_or_raise()
 
         handler = AuthProviderHandler()
         provider = handler.get_auth_provider(auth_provider_id)

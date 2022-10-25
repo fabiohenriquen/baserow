@@ -14,13 +14,11 @@ from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 
-from baserow_enterprise.api.sso.saml.errors import ERROR_SAML_INVALID_LOGIN_REQUEST
-from baserow_enterprise.license.handler import has_active_enterprise_license
-from baserow_enterprise.sso.saml.models import SamlAuthProviderModel
 from defusedxml import ElementTree
 from drf_spectacular.openapi import OpenApiParameter, OpenApiTypes
 from drf_spectacular.utils import extend_schema
 from rest_framework.permissions import AllowAny
+from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from saml2 import BINDING_HTTP_POST, BINDING_HTTP_REDIRECT, entity
@@ -32,6 +30,12 @@ from baserow.api.decorators import map_exceptions, validate_query_parameters
 from baserow.api.schemas import get_error_schema
 from baserow.core.user.exceptions import UserNotFound
 from baserow.core.user.handler import UserHandler
+from baserow_enterprise.api.sso.saml.errors import ERROR_SAML_INVALID_LOGIN_REQUEST
+from baserow_enterprise.license.handler import (
+    check_sso_feature_is_active_or_raise,
+    is_sso_feature_active,
+)
+from baserow_enterprise.sso.saml.models import SamlAuthProviderModel
 
 from .exceptions import (
     InvalidSamlConfiguration,
@@ -40,8 +44,6 @@ from .exceptions import (
 )
 from .serializers import SamlLoginRequestSerializer
 
-
-ENTITY_ID_SAML_RESPONSE_TAG = "{urn:oasis:names:tc:SAML:2.0:assertion}Issuer"
 REDIRECT_URL_ON_ERROR = settings.PUBLIC_WEB_FRONTEND_URL + "/login/error"
 
 
@@ -136,11 +138,13 @@ def get_saml_auth_provider_from_saml_response(
         user.
     """
 
+    entity_id_saml_response_tag = "{urn:oasis:names:tc:SAML:2.0:assertion}Issuer"
+
     try:
         decoded_saml_response = ElementTree.fromstring(
             base64.b64decode(saml_raw_response).decode("utf-8")
         )
-        issuer = decoded_saml_response.find(ENTITY_ID_SAML_RESPONSE_TAG).text
+        issuer = decoded_saml_response.find(entity_id_saml_response_tag).text
     except (binascii.Error, ElementTree.ParseError, AttributeError):
         raise InvalidSamlConfiguration("Impossible decode SAML response.")
 
@@ -252,9 +256,9 @@ class AssertionConsumerServiceView(View):
         authenticate and start a new session for the user.
         """
 
-        if not has_active_enterprise_license():
+        if not is_sso_feature_active():
             return redirect_to_frontend_error_page(
-                "SAML login is not available without a valid enterprise license."
+                "SSO SAML login is not available without an enterprise license."
             )
 
         saml_response = request.POST.get("SAMLResponse")
@@ -362,15 +366,15 @@ class BaserowInitiatedSingleSignOn(View):
         """
         This is the endpoint that is called when the user wants to initiate the
         SSO SAML login from Baserow (the service provider). The user will be
-        redirected to the SAML identity provider (IdP) where the user can
-        authenticate. After the authentication the user will be redirected back
+        redirected to the SAML identity provider (IdP) where it's possible to insert
+        the credentials. After the authentication, the user will be redirected back
         to the assertion consumer service endpoint (ACS) where the SAML response
-        will be validated and the user will be signed in.
+        will be validated and a new JWT session token will be provided.
         """
 
-        if not has_active_enterprise_license():
+        if not is_sso_feature_active():
             return redirect_to_frontend_error_page(
-                "SAML login is not available without an enterprise license."
+                "SSO SAML login is not available without an enterprise license."
             )
 
         email = request.GET.get("email")
@@ -385,7 +389,7 @@ class BaserowInitiatedSingleSignOn(View):
         except (InvalidSamlRequest, InvalidSamlConfiguration) as exc:
             logger.exception(exc)
             return redirect_to_frontend_error_page(
-                "An error occurred before the redirection to the SAML identity provider."
+                "Error redirecting to the correct SAML identity provider."
             )
 
         return redirect(redirect_url)
@@ -433,21 +437,19 @@ class AdminAuthProvidersLoginUrlView(APIView):
             InvalidSamlRequest: ERROR_SAML_INVALID_LOGIN_REQUEST,
         }
     )
-    def get(self, request, query_params):
+    def get(self, request: Request, query_params: Dict[str, Any]) -> Response:
         """Return the correct link for the SP initiated SAML login."""
 
-        # check_active_enterprise_license(?)
+        check_sso_feature_is_active_or_raise()
 
         # check there is a valid SAML provider configured for the email provided
         get_auth_provider(query_params.get("email"))
 
         relative_url = reverse("api:enterprise:sso:saml:login")
         if query_params:
-            # ensure the original requested url is relative
-            original = urlparse(query_params.pop("original", ""))
-            if original.hostname is None:
-                query_params["original"] = original.geturl()
-
-            relative_url = f"{relative_url}?{urlencode(query_params)}"
+            encoded_query_params = urlencode(
+                {k: v for k, v in query_params.items() if v is not None}
+            )
+            relative_url = f"{relative_url}?{encoded_query_params}"
 
         return Response({"redirect_url": request.build_absolute_uri(relative_url)})

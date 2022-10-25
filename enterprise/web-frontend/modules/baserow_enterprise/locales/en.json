@@ -29,11 +29,11 @@
         "title": "Add a new {type}"
     },
     "updateSettingsAuthProviderModal": {
-        "title": "Edit {type}"
+        "title": "Edit {name}"
     },
     "deleteAuthProviderModal": {
-        "title": "Delete {type}",
-        "comment": "Do you really want to delete this provider?"
+        "title": "Delete {name}",
+        "comment": "Do you really want to delete this {type}?"
     },
     "loginWithSaml": {
         "signInWithSaml": "Sign in with SAML SSO",

@@ -29,10 +29,4 @@ class AuthProvidersLoginOptionsView(APIView):
         providers.
         """
 
-        login_options = {}
-        providers = auth_provider_type_registry.get_all()
-        for provider in providers:
-            provider_login_options = provider.get_login_options()
-            if provider_login_options:
-                login_options[provider.type] = provider_login_options
-        return Response(login_options)
+        return Response(auth_provider_type_registry.get_all_available_login_options())

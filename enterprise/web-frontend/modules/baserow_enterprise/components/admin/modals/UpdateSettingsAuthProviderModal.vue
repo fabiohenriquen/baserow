@@ -3,7 +3,7 @@
     <h2 class="box__title">
       {{
         $t('updateSettingsAuthProviderModal.title', {
-          type: getProviderTypeName(),
+          name: getProviderName(),
         })
       }}
     </h2>
@@ -58,10 +58,10 @@ export default {
         .get('authProvider', this.authProvider.type)
         .getAdminSettingsFormComponent()
     },
-    getProviderTypeName() {
+    getProviderName() {
       return this.$registry
         .get('authProvider', this.authProvider.type)
-        .getName()
+        .getProviderName(this.authProvider)
     },
     async onSettingsUpdated(values) {
       this.loading = true

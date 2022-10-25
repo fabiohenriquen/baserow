@@ -1,9 +1,10 @@
 import io
 
-from baserow_enterprise.sso.saml.models import SamlAuthProviderModel
 from rest_framework import serializers
 from saml2.xml.schema import XMLSchemaError
 from saml2.xml.schema import validate as validate_saml
+
+from baserow_enterprise.sso.saml.models import SamlAuthProviderModel
 
 from .exceptions import SamlProviderWithSameDomainAlreadyExists
 

@@ -4,14 +4,15 @@ from django.shortcuts import reverse
 from django.test.utils import override_settings
 
 import pytest
-from baserow_enterprise.sso.saml.auth_provider_types import SamlAuthProviderType
-from baserow_enterprise.sso.saml.models import SamlAuthProviderModel
 from rest_framework.status import (
     HTTP_200_OK,
     HTTP_204_NO_CONTENT,
     HTTP_400_BAD_REQUEST,
     HTTP_404_NOT_FOUND,
 )
+
+from baserow_enterprise.sso.saml.auth_provider_types import SamlAuthProviderType
+from baserow_enterprise.sso.saml.models import SamlAuthProviderModel
 
 
 @pytest.mark.django_db

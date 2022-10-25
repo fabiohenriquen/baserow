@@ -1,5 +1,6 @@
 import urllib
 
+from django.contrib.auth import get_user_model
 from django.shortcuts import reverse
 from django.test.utils import override_settings
 
@@ -64,7 +65,7 @@ def test_saml_provider_get_login_url(api_client, data_fixture, enterprise_data_f
     query_params = urllib.parse.urlencode(
         {
             "email": f"user@{auth_provider_2.domain}",
-            "original": "http://test.com",
+            "original": "http://external-site.com",
         }
     )
     response = api_client.get(
@@ -109,3 +110,47 @@ def test_saml_provider_get_login_url(api_client, data_fixture, enterprise_data_f
     assert response.status_code == HTTP_400_BAD_REQUEST
     response_json = response.json()
     assert response_json["error"] == "ERROR_QUERY_PARAMETER_VALIDATION"
+
+
+@pytest.mark.django_db()
+@override_settings(DEBUG=True)
+def test_get_or_create_user_and_sign_in_via_saml_identity(
+    api_client, data_fixture, enterprise_data_fixture
+):
+    auth_provider_1 = enterprise_data_fixture.create_saml_auth_provider(
+        domain="test1.com"
+    )
+
+    user_info = {
+        "email": "john@acme.com",
+        "name": "John",
+    }
+
+    User = get_user_model()
+    assert User.objects.count() == 0
+
+    from baserow_enterprise.api.sso.saml.views import (
+        get_or_create_user_and_sign_in_via_saml_identity,
+    )
+
+    # test the user is created if not already present in the database
+    user = get_or_create_user_and_sign_in_via_saml_identity(user_info, auth_provider_1)
+
+    assert user is not None
+    assert user.email == user_info["email"]
+    assert user.first_name == user_info["name"]
+    assert user.password == ""
+    assert User.objects.count() == 1
+    assert user.groupuser_set.count() == 1
+    assert user.auth_providers.filter(id=auth_provider_1.id).exists()
+
+    # check that the second time the user is not created again
+    # but if we use another auth_provider to login, this is added
+    # in the m2m
+    auth_provider_2 = enterprise_data_fixture.create_saml_auth_provider(
+        domain="test2.com"
+    )
+    user = get_or_create_user_and_sign_in_via_saml_identity(user_info, auth_provider_2)
+
+    assert User.objects.count() == 1
+    assert user.auth_providers.filter(id=auth_provider_2.id).exists()

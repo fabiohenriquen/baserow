@@ -1,9 +1,5 @@
 <template>
-  <div
-    class="context"
-    :class="{ 'visibility-hidden': !open || !updatedOnce }"
-    @mousedown="onMousedown($event)"
-  >
+  <div class="context" :class="{ 'visibility-hidden': !open || !updatedOnce }">
     <slot v-if="openedOnce"></slot>
   </div>
 </template>
@@ -30,6 +26,10 @@ export default {
       // If opened once, should stay in DOM to keep nested content
       openedOnce: false,
       insideEvent: new Set(),
+      // Firefox and Chrome both can both have a different `target` element on `click`
+      // when you release the mouse at different coordinates. Therefore we expect this
+      // variable to be set on mousedown to be consistent.
+      downElement: null,
     }
   },
   methods: {
@@ -76,14 +76,6 @@ export default {
       } else {
         this.hide()
       }
-    },
-    /**
-     * Add the event to the `insideEvent` map. This allow to be sure a click event has
-     * been triggered from an element inside this context, even if the element has
-     * been removed after in the meantime.
-     */
-    onMousedown(event) {
-      this.insideEvent.add(event)
     },
     /**
      * Calculate the position, show the context menu and register a click event on the
@@ -134,14 +126,13 @@ export default {
       await this.$nextTick()
       updatePosition()
 
+      this.$el.mouseDownEvent = (event) => {
+        this.downElement = event.target
+      }
+      document.body.addEventListener('mousedown', this.$el.mouseDownEvent)
+
       this.$el.clickOutsideEvent = (event) => {
-        // If the event is from current context or any element inside current context
-        // the current event should be in the insideEvent map, even if the element
-        // has been removed from the DOM in the meantime
-        const insideContext = this.insideEvent.has(event)
-        if (insideContext) {
-          this.insideEvent.delete(event)
-        }
+        const target = this.downElement || event.target
 
         // Check if the context menu is still open
         if (this.open) {
@@ -150,21 +141,21 @@ export default {
             this.hideOnClickOutside &&
             // If the click was outside the context element because we want to ignore
             // clicks inside it or any child of this element
-            !insideContext &&
+            !isElement(this.$el, target) &&
             // If the click was not on the opener because he can trigger the toggle
             // method.
-            !isElement(this.opener, event.target) &&
+            !isElement(this.opener, target) &&
             // If the click was not inside one of the context children of this context
             // menu.
             !this.moveToBody.children.some((child) => {
-              return isElement(child.$el, event.target)
+              return isElement(child.$el, target)
             })
           ) {
             this.hide()
           }
         }
       }
-      document.body.addEventListener('mousedown', this.$el.clickOutsideEvent)
+      document.body.addEventListener('click', this.$el.clickOutsideEvent)
 
       this.$el.updatePositionEvent = (event) => {
         updatePosition()
@@ -188,6 +179,7 @@ export default {
     hide(emit = true) {
       this.opener = null
       this.open = false
+      this.downElement = null
 
       if (emit) {
         this.$emit('hidden')
@@ -195,7 +187,8 @@ export default {
 
       this.insideEvent = new Set()
 
-      document.body.removeEventListener('mousedown', this.$el.clickOutsideEvent)
+      document.body.removeEventListener('mousedown', this.$el.mouseDownEvent)
+      document.body.removeEventListener('click', this.$el.clickOutsideEvent)
       window.removeEventListener('scroll', this.$el.updatePositionEvent, true)
       window.removeEventListener('resize', this.$el.updatePositionEvent)
     },

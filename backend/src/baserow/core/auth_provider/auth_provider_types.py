@@ -1,5 +1,8 @@
 from typing import Any, Dict, Optional
 
+from rest_framework import serializers
+
+from baserow.core.auth_provider.validators import validate_domain
 from baserow.core.registry import (
     APIUrlsInstanceMixin,
     CustomFieldsInstanceMixin,
@@ -99,11 +102,6 @@ class AuthProviderType(
         :param provider: The authentication provider that is being deleted.
         """
 
-        # check if it's possible to delete an authentication provider of this type
-        # using the handler to check for example if there are other types that can be
-        # used to login once this one is deleted or return an error if the instance
-        # cannot be deleted.
-
         provider.delete()
 
     def list_providers(self, base_queryset=None):
@@ -144,6 +142,17 @@ class PasswordAuthProviderType(AuthProviderType):
 
     type = "password"
     model_class = PasswordAuthProviderModel
+    serializer_field_overrides = {
+        "domain": serializers.CharField(
+            validators=[validate_domain],
+            required=False,
+            help_text="The email domain (if any) registered with this password provider.",
+        ),
+        "enabled": serializers.BooleanField(
+            help_text="Whether the provider is enabled or not.",
+            required=False,
+        ),
+    }
 
     def get_login_options(self, **kwargs) -> Optional[Dict[str, Any]]:
         return {}

@@ -18,7 +18,7 @@ from baserow_enterprise.sso.saml.models import SamlAuthProviderModel
 @pytest.mark.django_db
 @override_settings(DEBUG=True)
 def test_create_saml_provider(api_client, data_fixture, enterprise_data_fixture):
-    admin, token = data_fixture.create_user_and_token(is_staff=True)
+    _, token = enterprise_data_fixture.create_enterprise_admin_user_and_token()
 
     # create a valid SAML provider
     domain = "test.it"
@@ -96,9 +96,7 @@ def test_create_saml_provider(api_client, data_fixture, enterprise_data_fixture)
     )
     assert response.status_code == HTTP_400_BAD_REQUEST
     response_json = response.json()
-    assert (
-        response_json["error"] == "ERROR_SAML_PROVIDER_WITH_SAME_DOMAIN_ALREADY_EXISTS"
-    )
+    assert response_json["error"] == "ERROR_SAML_PROVIDER_FOR_DOMAIN_ALREADY_EXISTS"
 
     assert SamlAuthProviderModel.objects.count() == 1
 
@@ -130,7 +128,7 @@ def test_create_saml_provider(api_client, data_fixture, enterprise_data_fixture)
 @pytest.mark.django_db
 @override_settings(DEBUG=True)
 def test_update_saml_provider(api_client, data_fixture, enterprise_data_fixture):
-    admin, token = data_fixture.create_user_and_token(is_staff=True)
+    _, token = enterprise_data_fixture.create_enterprise_admin_user_and_token()
     saml_provider_1 = enterprise_data_fixture.create_saml_auth_provider()
     saml_provider_2 = enterprise_data_fixture.create_saml_auth_provider()
 
@@ -164,9 +162,7 @@ def test_update_saml_provider(api_client, data_fixture, enterprise_data_fixture)
     )
     assert response.status_code == HTTP_400_BAD_REQUEST
     response_json = response.json()
-    assert (
-        response_json["error"] == "ERROR_SAML_PROVIDER_WITH_SAME_DOMAIN_ALREADY_EXISTS"
-    )
+    assert response_json["error"] == "ERROR_SAML_PROVIDER_FOR_DOMAIN_ALREADY_EXISTS"
 
     response = api_client.patch(
         auth_provider_1_url,
@@ -263,7 +259,7 @@ def test_update_saml_provider(api_client, data_fixture, enterprise_data_fixture)
 @pytest.mark.django_db
 @override_settings(DEBUG=True)
 def test_delete_saml_provider(api_client, data_fixture, enterprise_data_fixture):
-    admin, token = data_fixture.create_user_and_token(is_staff=True)
+    _, token = enterprise_data_fixture.create_enterprise_admin_user_and_token()
     saml_provider_1 = enterprise_data_fixture.create_saml_auth_provider()
 
     response = api_client.delete(
@@ -299,7 +295,7 @@ def test_delete_saml_provider(api_client, data_fixture, enterprise_data_fixture)
 @pytest.mark.django_db
 @override_settings(DEBUG=True)
 def test_get_saml_provider(api_client, data_fixture, enterprise_data_fixture):
-    admin, token = data_fixture.create_user_and_token(is_staff=True)
+    _, token = enterprise_data_fixture.create_enterprise_admin_user_and_token()
     saml_provider_1 = enterprise_data_fixture.create_saml_auth_provider()
     response = api_client.get(
         reverse(

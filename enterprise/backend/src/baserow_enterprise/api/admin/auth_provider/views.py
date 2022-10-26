@@ -19,7 +19,7 @@ from baserow.api.utils import (
 from baserow.core.auth_provider.exceptions import AuthProviderModelNotFound
 from baserow.core.registries import auth_provider_type_registry
 from baserow_enterprise.auth_provider.handler import AuthProviderHandler
-from baserow_enterprise.license.handler import check_sso_feature_is_active_or_raise
+from baserow_enterprise.sso.utils import check_sso_feature_is_active_or_raise
 
 from .errors import ERROR_AUTH_PROVIDER_DOES_NOT_EXIST
 from .serializers import CreateAuthProviderSerializer, UpdateAuthProviderSerializer

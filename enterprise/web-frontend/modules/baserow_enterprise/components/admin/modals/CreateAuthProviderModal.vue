@@ -11,9 +11,7 @@
       <component
         :is="getProviderAdminSettingsFormComponent()"
         ref="providerSettingsForm"
-        :server-errors="serverErrors"
         @submit="create($event)"
-        @input="updateServerErrors($event)"
       >
         <div
           class="context__form-actions context__form-actions--multiple-actions"
@@ -49,7 +47,6 @@ export default {
   data() {
     return {
       loading: false,
-      serverErrors: {},
     }
   },
   methods: {
@@ -73,20 +70,12 @@ export default {
         })
         this.$emit('created')
       } catch (error) {
-        const rspData = error.response?.data || {}
-        if (rspData.error === 'ERROR_REQUEST_BODY_VALIDATION') {
-          for (const [key, value] of Object.entries(rspData.detail || {})) {
-            this.serverErrors[key] = value
-          }
-        } else {
+        if (!this.$refs.providerSettingsForm.handleServerError(error)) {
           notifyIf(error, 'settings')
         }
       } finally {
         this.loading = false
       }
-    },
-    updateServerErrors(fieldName) {
-      this.serverErrors[fieldName] = null
     },
   },
 }

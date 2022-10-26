@@ -16,7 +16,7 @@ class InvalidSamlRequest(Exception):
     """
 
 
-class SamlProviderWithSameDomainAlreadyExists(Exception):
+class SamlProviderForDomainAlreadyExists(Exception):
     """
     This exception is raised when a SAML provider is created or updated with a
     domain that already exists.

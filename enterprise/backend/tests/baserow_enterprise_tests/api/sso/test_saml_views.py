@@ -5,13 +5,17 @@ from django.shortcuts import reverse
 from django.test.utils import override_settings
 
 import pytest
+
 from rest_framework.status import HTTP_200_OK, HTTP_400_BAD_REQUEST
+
+from baserow_enterprise.auth_provider.handler import AuthProviderHandler, UserInfo
 
 
 @pytest.mark.django_db
 @override_settings(DEBUG=True)
 def test_saml_provider_get_login_url(api_client, data_fixture, enterprise_data_fixture):
-    admin, token = data_fixture.create_user_and_token(is_staff=True)
+
+    _, token = enterprise_data_fixture.create_enterprise_admin_user_and_token()
 
     # create a valid SAML provider
     auth_provider_1 = enterprise_data_fixture.create_saml_auth_provider(
@@ -117,30 +121,27 @@ def test_saml_provider_get_login_url(api_client, data_fixture, enterprise_data_f
 def test_get_or_create_user_and_sign_in_via_saml_identity(
     api_client, data_fixture, enterprise_data_fixture
 ):
+    enterprise_data_fixture.create_enterprise_admin_user_and_token()
+
     auth_provider_1 = enterprise_data_fixture.create_saml_auth_provider(
         domain="test1.com"
     )
 
-    user_info = {
-        "email": "john@acme.com",
-        "name": "John",
-    }
+    user_info = UserInfo("john@acme.com", "John")
 
     User = get_user_model()
-    assert User.objects.count() == 0
-
-    from baserow_enterprise.api.sso.saml.views import (
-        get_or_create_user_and_sign_in_via_saml_identity,
-    )
+    assert User.objects.count() == 1
 
     # test the user is created if not already present in the database
-    user = get_or_create_user_and_sign_in_via_saml_identity(user_info, auth_provider_1)
+    user = AuthProviderHandler.get_or_create_user_and_sign_in_via_auth_provider(
+        user_info, auth_provider_1
+    )
 
     assert user is not None
-    assert user.email == user_info["email"]
-    assert user.first_name == user_info["name"]
+    assert user.email == user_info.email
+    assert user.first_name == user_info.name
     assert user.password == ""
-    assert User.objects.count() == 1
+    assert User.objects.count() == 2
     assert user.groupuser_set.count() == 1
     assert user.auth_providers.filter(id=auth_provider_1.id).exists()
 
@@ -150,7 +151,9 @@ def test_get_or_create_user_and_sign_in_via_saml_identity(
     auth_provider_2 = enterprise_data_fixture.create_saml_auth_provider(
         domain="test2.com"
     )
-    user = get_or_create_user_and_sign_in_via_saml_identity(user_info, auth_provider_2)
+    user = AuthProviderHandler.get_or_create_user_and_sign_in_via_auth_provider(
+        user_info, auth_provider_2
+    )
 
-    assert User.objects.count() == 1
+    assert User.objects.count() == 2
     assert user.auth_providers.filter(id=auth_provider_2.id).exists()

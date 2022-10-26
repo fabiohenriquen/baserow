@@ -4,9 +4,8 @@ from rest_framework import serializers
 from saml2.xml.schema import XMLSchemaError
 from saml2.xml.schema import validate as validate_saml
 
+from baserow_enterprise.sso.saml.exceptions import SamlProviderForDomainAlreadyExists
 from baserow_enterprise.sso.saml.models import SamlAuthProviderModel
-
-from .exceptions import SamlProviderWithSameDomainAlreadyExists
 
 
 def validate_unique_saml_domain(
@@ -16,7 +15,7 @@ def validate_unique_saml_domain(
     if instance:
         queryset = queryset.exclude(id=instance.id)
     if queryset.exists():
-        raise SamlProviderWithSameDomainAlreadyExists(
+        raise SamlProviderForDomainAlreadyExists(
             f"There is already a {model_class.__name__} for this domain."
         )
     return domain

@@ -12,8 +12,6 @@
         :is="getProviderAdminSettingsFormComponent()"
         ref="providerSettingsForm"
         :auth-provider="authProvider"
-        :server-errors="serverErrors"
-        @input="updateServerErrors($event)"
         @submit="onSettingsUpdated"
       >
         <div
@@ -49,7 +47,6 @@ export default {
   data() {
     return {
       loading: false,
-      serverErrors: {},
     }
   },
   methods: {
@@ -72,20 +69,12 @@ export default {
         })
         this.$emit('settings-updated')
       } catch (error) {
-        const rspData = error.response?.data || {}
-        if (rspData.error === 'ERROR_REQUEST_BODY_VALIDATION') {
-          for (const [key, value] of Object.entries(rspData.detail || {})) {
-            this.serverErrors[key] = value
-          }
-        } else {
+        if (!this.$refs.providerSettingsForm.handleServerError(error)) {
           notifyIf(error, 'settings')
         }
       } finally {
         this.loading = false
       }
-    },
-    updateServerErrors(fieldName) {
-      this.serverErrors[fieldName] = null
     },
   },
 }

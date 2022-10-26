@@ -5,8 +5,9 @@ class BaserowEnterpriseConfig(AppConfig):
     name = "baserow_enterprise"
 
     def ready(self):
-        from baserow_enterprise.license_types import EnterpriseLicenseType
         from baserow_premium.license.registries import license_type_registry
+
+        from baserow_enterprise.license_types import EnterpriseLicenseType
 
         license_type_registry.register(EnterpriseLicenseType())
         from baserow.core.registries import plugin_registry

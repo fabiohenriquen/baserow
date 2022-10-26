@@ -97,10 +97,10 @@ class UserHandler:
         name: str,
         email: str,
         password: str,
-        language: str = settings.LANGUAGE_CODE,
+        language: Optional[str] = None,
         group_invitation_token: Optional[str] = None,
         template: Template = None,
-        authentication_provider: Optional[AuthProviderModel] = None,
+        auth_provider: Optional[AuthProviderModel] = None,
     ) -> AbstractUser:
         """
         Creates a new user with the provided information and creates a new group and
@@ -130,6 +130,9 @@ class UserHandler:
 
         core_handler = CoreHandler()
 
+        if language is None:
+            language = settings.LANGUAGE_CODE
+
         email = normalize_email_address(email)
 
         if User.objects.filter(Q(email=email) | Q(username=email)).exists():
@@ -149,10 +152,10 @@ class UserHandler:
                     "user."
                 )
 
-        settings = core_handler.get_settings()
-        allow_new_signups = settings.allow_new_signups
+        instance_settings = core_handler.get_settings()
+        allow_new_signups = instance_settings.allow_new_signups
         allow_signup_for_invited_user = (
-            settings.allow_signups_via_group_invitations
+            instance_settings.allow_signups_via_group_invitations
             and group_invitation is not None
         )
         if not (allow_new_signups or allow_signup_for_invited_user):
@@ -173,9 +176,9 @@ class UserHandler:
             # can set baserow wide settings.
             user.is_staff = True
 
-        if settings.show_admin_signup_page:
-            settings.show_admin_signup_page = False
-            settings.save()
+        if instance_settings.show_admin_signup_page:
+            instance_settings.show_admin_signup_page = False
+            instance_settings.save()
 
         user.save()
 
@@ -201,9 +204,9 @@ class UserHandler:
             plugin.user_created(user, group_user.group, group_invitation, template)
 
         # register the authentication provider used to create the user
-        if authentication_provider is None:
-            authentication_provider = auth_provider_type_registry.get_default_provider()
-        authentication_provider.user_signed_in(user)
+        if auth_provider is None:
+            auth_provider = auth_provider_type_registry.get_default_provider()
+        auth_provider.user_signed_in(user)
 
         return user
 

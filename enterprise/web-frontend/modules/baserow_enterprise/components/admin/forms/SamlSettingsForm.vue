@@ -12,7 +12,7 @@
           type="text"
           class="input"
           :placeholder="$t('samlSettingsForm.domainPlaceholder')"
-          @input="$emit('input', 'domain')"
+          @input="serverErrors.domain = null"
           @blur="$v.values.domain.$touch()"
         />
         <div
@@ -49,7 +49,7 @@
           type="textarea"
           class="input saml-settings__metadata"
           :placeholder="$t('samlSettingsForm.metadataPlaceholder')"
-          @input="$emit('input', 'metadata')"
+          @input="serverErrors.metadata = null"
           @blur="$v.values.metadata.$touch()"
         ></textarea>
         <div
@@ -80,15 +80,11 @@ export default {
       required: false,
       default: () => ({}),
     },
-    serverErrors: {
-      type: Object,
-      required: false,
-      default: () => ({}),
-    },
   },
   data() {
     return {
       allowedValues: ['domain', 'metadata'],
+      serverErrors: {},
       values: {
         domain: '',
         metadata: '',
@@ -123,6 +119,14 @@ export default {
     },
     mustHaveUniqueDomain(domain) {
       return !this.samlDomains.includes(domain.trim())
+    },
+    handleServerError(error) {
+      if (error.handler.code !== 'ERROR_REQUEST_BODY_VALIDATION') return false
+
+      for (const [key, value] of Object.entries(error.handler.detail || {})) {
+        this.serverErrors[key] = value
+      }
+      return true
     },
   },
   validations() {

@@ -6,16 +6,14 @@ from baserow.api.utils import ExceptionMappingType
 from baserow.core.auth_provider.auth_provider_types import AuthProviderType
 from baserow.core.auth_provider.validators import validate_domain
 from baserow_enterprise.api.sso.saml.errors import (
-    ERROR_SAML_PROVIDER_WITH_SAME_DOMAIN_ALREADY_EXISTS,
-)
-from baserow_enterprise.api.sso.saml.exceptions import (
-    SamlProviderWithSameDomainAlreadyExists,
+    ERROR_SAML_PROVIDER_FOR_DOMAIN_ALREADY_EXISTS,
 )
 from baserow_enterprise.api.sso.saml.validators import (
     validate_saml_metadata,
     validate_unique_saml_domain,
 )
-from baserow_enterprise.license.handler import is_sso_feature_active
+from baserow_enterprise.sso.saml.exceptions import SamlProviderForDomainAlreadyExists
+from baserow_enterprise.sso.utils import is_sso_feature_active
 
 from .models import SamlAuthProviderModel
 
@@ -37,14 +35,28 @@ class SamlAuthProviderType(AuthProviderType):
     ]
     serializer_field_names = ["domain", "metadata", "enabled", "is_verified"]
     serializer_field_overrides = {
-        "domain": serializers.CharField(validators=[validate_domain], required=True),
-        "metadata": serializers.CharField(
-            validators=[validate_saml_metadata], required=True
+        "domain": serializers.CharField(
+            validators=[validate_domain],
+            required=True,
+            help_text="The email domain registered with this provider.",
         ),
-        "is_verified": serializers.BooleanField(required=False, read_only=True),
+        "enabled": serializers.BooleanField(
+            help_text="Whether the provider is enabled or not.",
+            required=False,
+        ),
+        "metadata": serializers.CharField(
+            validators=[validate_saml_metadata],
+            required=True,
+            help_text="The SAML metadata XML provided by the IdP.",
+        ),
+        "is_verified": serializers.BooleanField(
+            required=False,
+            read_only=True,
+            help_text="Whether or not a user sign in correctly with this SAML provider.",
+        ),
     }
     api_exceptions_map: ExceptionMappingType = {
-        SamlProviderWithSameDomainAlreadyExists: ERROR_SAML_PROVIDER_WITH_SAME_DOMAIN_ALREADY_EXISTS
+        SamlProviderForDomainAlreadyExists: ERROR_SAML_PROVIDER_FOR_DOMAIN_ALREADY_EXISTS
     }
 
     def before_create(self, user, **values):
@@ -59,8 +71,11 @@ class SamlAuthProviderType(AuthProviderType):
     def get_login_options(self, **kwargs) -> Optional[Dict[str, Any]]:
 
         single_sign_on_feature_active = is_sso_feature_active()
+        if not single_sign_on_feature_active:
+            return None
+
         configured_domains = SamlAuthProviderModel.objects.filter(enabled=True).count()
-        if not single_sign_on_feature_active or not configured_domains:
+        if not configured_domains:
             return None
 
         return {

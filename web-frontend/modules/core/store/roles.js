@@ -22,39 +22,37 @@ const appendRoleTranslations = (roles, registry) => {
   })
 }
 
-export default () => {
-  const state = () => ({
-    roles: [],
-  })
+const state = () => ({
+  roles: [],
+})
 
-  const mutations = {
-    SET_ROLES(state, roles) {
-      state.roles = roles
-    },
-  }
+const mutations = {
+  SET_ROLES(state, roles) {
+    state.roles = roles
+  },
+}
 
-  const actions = {
-    async fetchRoles({ commit }, group) {
-      const { data } = await RolesService(
-        this.$client,
-        this.app.$featureFlags
-      ).get(group)
-      const translatedRoles = appendRoleTranslations(data, this.app.$registry)
-      commit('SET_ROLES', translatedRoles)
-    },
-  }
+const actions = {
+  async fetchRoles({ commit }, group) {
+    const { data } = await RolesService(
+      this.$client,
+      this.app.$featureFlags
+    ).get(group)
+    const translatedRoles = appendRoleTranslations(data, this.app.$registry)
+    commit('SET_ROLES', translatedRoles)
+  },
+}
 
-  const getters = {
-    getAllRoles(state) {
-      return state.roles
-    },
-  }
+const getters = {
+  getAllRoles(state) {
+    return state.roles
+  },
+}
 
-  return {
-    namespaced: true,
-    state,
-    getters,
-    actions,
-    mutations,
-  }
+export default {
+  namespaced: true,
+  state,
+  getters,
+  actions,
+  mutations,
 }

@@ -95,6 +95,7 @@ export default (context, inject) => {
 
   store.registerModule('settings', settingsStore)
   store.registerModule('permissions', permissionsStore)
+  store.registerModule('roles', rolesStore)
   store.registerModule('application', applicationStore)
   store.registerModule('auth', authStore)
   store.registerModule('job', jobStore)
@@ -102,7 +103,6 @@ export default (context, inject) => {
   store.registerModule('notification', notificationStore)
   store.registerModule('sidebar', sidebarStore)
   store.registerModule('undoRedo', undoRedoStore)
-  store.registerModule('roles', rolesStore({ registry, i18n: app.i18n }))
 
   registry.register('job', new DuplicateApplicationJobType(context))
   registry.register('job', new InstallTemplateJobType(context))

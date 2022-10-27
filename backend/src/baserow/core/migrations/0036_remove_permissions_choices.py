@@ -15,7 +15,10 @@ class Migration(migrations.Migration):
             name="permissions",
             field=models.CharField(
                 default="MEMBER",
-                help_text="The permissions that the user is going to get within the group after accepting the invitation.",
+                help_text=(
+                    "The permissions that the user is going to get within the "
+                    "group after accepting the invitation."
+                ),
                 max_length=32,
             ),
         ),

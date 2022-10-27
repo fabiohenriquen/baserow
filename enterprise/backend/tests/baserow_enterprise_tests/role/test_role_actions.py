@@ -20,7 +20,7 @@ from baserow.test_utils.helpers import assert_undo_redo_actions_are_valid
     PERMISSION_MANAGERS=["core", "staff", "member", "basic", "role"],
 )
 @patch("baserow.core.handler.CoreHandler.check_permissions")
-def test_can_undo_create_table(mock_check_permissions, data_fixture):
+def test_can_undo_assign_role(mock_check_permissions, data_fixture):
     session_id = "session-id"
     user = data_fixture.create_user(session_id=session_id)
     user2 = data_fixture.create_user()
@@ -58,7 +58,7 @@ def test_can_undo_create_table(mock_check_permissions, data_fixture):
 @pytest.mark.undo_redo
 @override_settings(FEATURE_FLAGS=["roles"])
 @patch("baserow.core.handler.CoreHandler.check_permissions")
-def test_can_undo_redo_create_table(mock_check_permissions, data_fixture):
+def test_can_undo_redo_assign_table(mock_check_permissions, data_fixture):
     session_id = "session-id"
     user = data_fixture.create_user(session_id=session_id)
     user2 = data_fixture.create_user()

@@ -1,4 +1,4 @@
-import { isElement, onClickOutside } from '@baserow/modules/core/utils/dom'
+import { onClickOutside } from '@baserow/modules/core/utils/dom'
 import baseField from '@baserow/modules/database/mixins/baseField'
 import copyPasteHelper from '@baserow/modules/database/mixins/copyPasteHelper'
 

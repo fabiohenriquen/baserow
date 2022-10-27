@@ -5,7 +5,12 @@
 </template>
 
 <script>
-import { isElement, isDomElement } from '@baserow/modules/core/utils/dom'
+import {
+  isElement,
+  isDomElement,
+  onClickOutside,
+} from '@baserow/modules/core/utils/dom'
+
 import MoveToBody from '@baserow/modules/core/mixins/moveToBody'
 
 export default {
@@ -25,11 +30,6 @@ export default {
       updatedOnce: false,
       // If opened once, should stay in DOM to keep nested content
       openedOnce: false,
-      insideEvent: new Set(),
-      // Firefox and Chrome both can both have a different `target` element on `click`
-      // when you release the mouse at different coordinates. Therefore we expect this
-      // variable to be set on mousedown to be consistent.
-      downElement: null,
     }
   },
   methods: {
@@ -126,36 +126,23 @@ export default {
       await this.$nextTick()
       updatePosition()
 
-      this.$el.mouseDownEvent = (event) => {
-        this.downElement = event.target
-      }
-      document.body.addEventListener('mousedown', this.$el.mouseDownEvent)
-
-      this.$el.clickOutsideEvent = (event) => {
-        const target = this.downElement || event.target
-
-        // Check if the context menu is still open
-        if (this.open) {
-          if (
-            // If the prop allows it to be closed by clicking outside.
-            this.hideOnClickOutside &&
-            // If the click was outside the context element because we want to ignore
-            // clicks inside it or any child of this element
-            !isElement(this.$el, target) &&
-            // If the click was not on the opener because he can trigger the toggle
-            // method.
-            !isElement(this.opener, target) &&
-            // If the click was not inside one of the context children of this context
-            // menu.
-            !this.moveToBody.children.some((child) => {
-              return isElement(child.$el, target)
-            })
-          ) {
-            this.hide()
-          }
+      this.$el.cancelOnClickOutside = onClickOutside(this.$el, (target) => {
+        if (
+          this.open &&
+          // If the prop allows it to be closed by clicking outside.
+          this.hideOnClickOutside &&
+          // If the click was not on the opener because he can trigger the toggle
+          // method.
+          !isElement(this.opener, target) &&
+          // If the click was not inside one of the context children of this context
+          // menu.
+          !this.moveToBody.children.some((child) => {
+            return isElement(child.$el, target)
+          })
+        ) {
+          this.hide()
         }
-      }
-      document.body.addEventListener('click', this.$el.clickOutsideEvent)
+      })
 
       this.$el.updatePositionEvent = (event) => {
         updatePosition()
@@ -179,16 +166,18 @@ export default {
     hide(emit = true) {
       this.opener = null
       this.open = false
-      this.downElement = null
 
       if (emit) {
         this.$emit('hidden')
       }
 
-      this.insideEvent = new Set()
-
-      document.body.removeEventListener('mousedown', this.$el.mouseDownEvent)
-      document.body.removeEventListener('click', this.$el.clickOutsideEvent)
+      // If the context menu was never opened, it doesn't have the
+      // `cancelOnClickOutside`, so we can't call it.
+      if (
+        Object.prototype.hasOwnProperty.call(this.$el, 'cancelOnClickOutside')
+      ) {
+        this.$el.cancelOnClickOutside()
+      }
       window.removeEventListener('scroll', this.$el.updatePositionEvent, true)
       window.removeEventListener('resize', this.$el.updatePositionEvent)
     },

@@ -5,7 +5,6 @@ from django.shortcuts import reverse
 from django.test.utils import override_settings
 
 import pytest
-
 from rest_framework.status import HTTP_200_OK, HTTP_400_BAD_REQUEST
 
 from baserow_enterprise.auth_provider.handler import AuthProviderHandler, UserInfo

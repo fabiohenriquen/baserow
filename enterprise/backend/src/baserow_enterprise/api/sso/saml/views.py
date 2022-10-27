@@ -21,6 +21,7 @@ from baserow.api.schemas import get_error_schema
 from baserow.core.user.exceptions import UserAlreadyExist
 from baserow_enterprise.api.sso.saml.errors import ERROR_SAML_INVALID_LOGIN_REQUEST
 from baserow_enterprise.api.sso.utils import (
+    SsoErrorCode,
     redirect_to_sign_in_error_page,
     redirect_user_on_success,
 )
@@ -50,18 +51,14 @@ class AssertionConsumerServiceView(View):
         """
 
         if not is_sso_feature_active():
-            return redirect_to_sign_in_error_page(
-                "SSO SAML login is not available without an enterprise license."
-            )
+            return redirect_to_sign_in_error_page(SsoErrorCode.FEATURE_NOT_ACTIVE)
 
         try:
             user = SamlAuthProviderHandler.sign_in_user(request)
         except InvalidSamlConfiguration:
-            return redirect_to_sign_in_error_page(
-                "An error occurred parsing the Identity Provider SAML response."
-            )
+            return redirect_to_sign_in_error_page(SsoErrorCode.INVALID_SAML_RESPONSE)
         except UserAlreadyExist:
-            return redirect_to_sign_in_error_page("User has been disabled.")
+            return redirect_to_sign_in_error_page(SsoErrorCode.ERROR_USER_DEACTIVATED)
 
         requested_url = request.POST["RelayState"]
         return redirect_user_on_success(user, requested_url)
@@ -80,16 +77,12 @@ class BaserowInitiatedSingleSignOn(View):
         """
 
         if not is_sso_feature_active():
-            return redirect_to_sign_in_error_page(
-                "SSO SAML login is not available without an enterprise license."
-            )
+            return redirect_to_sign_in_error_page(SsoErrorCode.FEATURE_NOT_ACTIVE)
 
         try:
             idp_sign_in_url = SamlAuthProviderHandler.get_sign_in_url(request)
         except (InvalidSamlConfiguration, InvalidSamlRequest):
-            return redirect_to_sign_in_error_page(
-                "An error occurred trying to redirect to the IdP sign in URL."
-            )
+            return redirect_to_sign_in_error_page(SsoErrorCode.INVALID_SAML_REQUEST)
         return redirect(idp_sign_in_url)
 
 

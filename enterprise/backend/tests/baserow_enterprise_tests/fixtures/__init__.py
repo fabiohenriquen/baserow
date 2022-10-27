@@ -1,11 +1,10 @@
 import faker
-
 from baserow_premium.license.handler import LicenseHandler
+
 from baserow.core.models import Settings
 from baserow.test_utils.fixtures import Fixtures
 
 from .sso import SamlFixture
-
 
 VALID_ONE_SEAT_ENTERPRISE_LICENSE = (
     # id: "1", instance_id: "1"

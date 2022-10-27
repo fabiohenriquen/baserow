@@ -41,7 +41,11 @@
         "requestError": "This domain is not configured with SAML SSO"
     },
     "loginError": {
-        "title": "Ouch! Something went wrong...",
-        "defaultMessage": "An error occurred while trying to log in."
+        "title": "Something went wrong...",
+        "defaultErrorMessage": "An error occurred while trying to log in.",
+        "errorSsoFeatureNotActive": "The SSO feature is not active. Please contact your administrator.",
+        "errorInvalidSamlRequest": "The SAML request is invalid.",
+        "errorInvalidSamlResponse": "The SAML response is invalid.",
+        "errorUserDeactivated": "The user has been disabled."
     }
 }

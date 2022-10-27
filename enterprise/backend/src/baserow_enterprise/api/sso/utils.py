@@ -1,3 +1,4 @@
+from enum import Enum
 from typing import Optional
 from urllib.parse import urlencode, urlparse
 
@@ -9,8 +10,16 @@ from django.shortcuts import redirect
 from baserow.core.user.utils import generate_session_tokens_for_user
 
 
+# please keep this in sync with baserow_enterprise/locales/en.json
+class SsoErrorCode(Enum):
+    FEATURE_NOT_ACTIVE = "errorSsoFeatureNotActive"
+    INVALID_SAML_REQUEST = "errorInvalidSamlRequest"
+    INVALID_SAML_RESPONSE = "errorInvalidSamlResponse"
+    ERROR_USER_DEACTIVATED = "errorUserDeactivated"
+
+
 def redirect_to_sign_in_error_page(
-    error_message: Optional[str] = None,
+    error_code: Optional[SsoErrorCode] = None,
 ) -> HttpResponse:
     """
     Redirects the user to the error page in the frontend providing a message as
@@ -22,8 +31,9 @@ def redirect_to_sign_in_error_page(
     """
 
     frontend_error_page_url = settings.PUBLIC_WEB_FRONTEND_URL + "/login/error"
-    if error_message:
-        frontend_error_page_url += "?" + urlencode({"message": error_message})
+    if error_code:
+        error_frontend_code = error_code.value
+        frontend_error_page_url += "?" + urlencode({"error": error_frontend_code})
     return redirect(frontend_error_page_url)
 
 

@@ -10,7 +10,9 @@
         {{ $t('loginError.title') }}
       </h1>
     </div>
-    {{ errorMessage }}
+    <p>
+      {{ errorMessage }}
+    </p>
   </div>
 </template>
 
@@ -18,8 +20,14 @@
 export default {
   layout: 'login',
   asyncData({ route, i18n }) {
+    const { error } = route.query
+    const errorMessageI18nKey = `loginError.${error}`
+    let errorMessage = i18n.t('loginError.defaultErrorMessage')
+    if (i18n.te(errorMessageI18nKey)) {
+      errorMessage = i18n.t(`loginError.${error}`)
+    }
     return {
-      errorMessage: route.query.message || i18n.t('loginError.defaultMessage'),
+      errorMessage,
     }
   },
   head() {

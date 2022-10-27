@@ -1,7 +1,8 @@
 from django.contrib.auth import get_user_model
 from django.db.models import QuerySet
 
-from baserow_premium.license.handler import check_active_premium_license_for_group
+from baserow_premium.license.features import PREMIUM
+from baserow_premium.license.handler import LicenseHandler
 from baserow_premium.row_comments.exceptions import InvalidRowCommentException
 from baserow_premium.row_comments.models import RowComment
 from baserow_premium.row_comments.signals import row_comment_created
@@ -29,7 +30,10 @@ class RowCommentHandler:
         """
 
         table = TableHandler().get_table(table_id)
-        check_active_premium_license_for_group(requesting_user, table.database.group)
+        LicenseHandler.raise_if_user_doesnt_have_feature(
+            requesting_user, table.database.group, PREMIUM
+        )
+
         RowHandler().has_row(requesting_user, table, row_id, raise_error=True)
         return (
             RowComment.objects.select_related("user")
@@ -57,7 +61,9 @@ class RowCommentHandler:
         """
 
         table = TableHandler().get_table(table_id)
-        check_active_premium_license_for_group(requesting_user, table.database.group)
+        LicenseHandler.raise_if_user_doesnt_have_feature(
+            requesting_user, table.database.group, PREMIUM
+        )
 
         if comment is None or comment == "":
             raise InvalidRowCommentException()

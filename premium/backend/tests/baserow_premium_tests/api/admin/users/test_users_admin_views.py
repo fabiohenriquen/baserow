@@ -8,7 +8,6 @@ from django.utils.datetime_safe import datetime
 import pytest
 from rest_framework.status import (
     HTTP_200_OK,
-    HTTP_201_CREATED,
     HTTP_204_NO_CONTENT,
     HTTP_400_BAD_REQUEST,
     HTTP_401_UNAUTHORIZED,
@@ -125,7 +124,7 @@ def test_admin_list_users_without_premium_license(api_client, premium_data_fixtu
         HTTP_AUTHORIZATION=f"JWT {token}",
     )
     assert response.status_code == HTTP_402_PAYMENT_REQUIRED
-    assert response.json()["error"] == "ERROR_NO_ACTIVE_PREMIUM_LICENSE"
+    assert response.json()["error"] == "ERROR_FEATURE_NOT_AVAILABLE"
 
 
 @pytest.mark.django_db
@@ -146,7 +145,7 @@ def test_admin_with_invalid_token_cannot_see_admin_users(
         HTTP_AUTHORIZATION=f"JWT abc123",
     )
     assert response.status_code == HTTP_401_UNAUTHORIZED
-    assert response.json()["error"] == "ERROR_DECODING_SIGNATURE"
+    assert response.json()["error"] == "ERROR_INVALID_TOKEN"
 
 
 @pytest.mark.django_db
@@ -457,7 +456,7 @@ def test_admin_cannot_delete_user_without_premium_license(
         HTTP_AUTHORIZATION=f"JWT {admin_token}",
     )
     assert response.status_code == HTTP_402_PAYMENT_REQUIRED
-    assert response.json()["error"] == "ERROR_NO_ACTIVE_PREMIUM_LICENSE"
+    assert response.json()["error"] == "ERROR_FEATURE_NOT_AVAILABLE"
 
 
 @pytest.mark.django_db
@@ -535,7 +534,7 @@ def test_non_admin_cannot_patch_user_without_premium_license(
         HTTP_AUTHORIZATION=f"JWT {non_admin_user_token}",
     )
     assert response.status_code == HTTP_402_PAYMENT_REQUIRED
-    assert response.json()["error"] == "ERROR_NO_ACTIVE_PREMIUM_LICENSE"
+    assert response.json()["error"] == "ERROR_FEATURE_NOT_AVAILABLE"
 
     non_admin_user.refresh_from_db()
     assert non_admin_user.email == "test@test.nl"
@@ -803,7 +802,7 @@ def test_admin_impersonate_user_without_premium_license(
         HTTP_AUTHORIZATION=f"JWT {token}",
     )
     assert response.status_code == HTTP_402_PAYMENT_REQUIRED
-    assert response.json()["error"] == "ERROR_NO_ACTIVE_PREMIUM_LICENSE"
+    assert response.json()["error"] == "ERROR_FEATURE_NOT_AVAILABLE"
 
 
 @pytest.mark.django_db
@@ -869,9 +868,10 @@ def test_admin_impersonate_user(api_client, premium_data_fixture):
         format="json",
         HTTP_AUTHORIZATION=f"JWT {token}",
     )
-    assert response.status_code == HTTP_201_CREATED
+    assert response.status_code == HTTP_200_OK
     response_json = response.json()
-    assert "token" in response_json
+    assert "access_token" in response_json
+    assert "refresh_token" in response_json
     assert "password" not in response_json["user"]
     assert response_json["user"]["username"] == "specific_user@test.nl"
     assert response_json["user"]["first_name"] == "Test1"

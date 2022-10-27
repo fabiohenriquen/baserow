@@ -18,8 +18,8 @@ data_fixture = Fixtures()
 class EnterpriseFixtures(SamlFixture):
     faker = faker.Faker()
 
-    def create_enterprise_admin_user_and_token(self):
+    def create_enterprise_admin_user_and_token(self, **kwargs):
         Settings.objects.update_or_create(defaults={"instance_id": "1"})
-        user, token = data_fixture.create_user_and_token(is_staff=True)
+        user, token = data_fixture.create_user_and_token(is_staff=True, **kwargs)
         LicenseHandler.register_license(user, VALID_ONE_SEAT_ENTERPRISE_LICENSE)
         return user, token

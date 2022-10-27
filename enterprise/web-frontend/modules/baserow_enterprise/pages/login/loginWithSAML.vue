@@ -85,14 +85,14 @@ export default {
         'authProvider/fetchLoginOptions'
       )
       if (!loginOptions.saml) {
-        redirect('/login')
+        return redirect('/login')
       } else if (!loginOptions.saml.domainRequired) {
         const { data } = await samlAuthProviderService(
           app.$client
         ).getSamlLoginUrl({
           original: route.query.original,
         })
-        redirect(data.redirect_url)
+        return redirect(data.redirect_url)
       }
     }
   },

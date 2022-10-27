@@ -111,13 +111,13 @@ class SamlAuthProviderHandler:
             user.
         """
 
-        entity_id_saml_response_tag = "{urn:oasis:names:tc:SAML:2.0:assertion}Issuer"
-
         try:
             decoded_saml_response = ElementTree.fromstring(
                 base64.b64decode(saml_raw_response).decode("utf-8")
             )
-            issuer = decoded_saml_response.find(entity_id_saml_response_tag).text
+            issuer = decoded_saml_response.find(
+                "{urn:oasis:names:tc:SAML:2.0:assertion}Issuer"
+            ).text
         except (binascii.Error, ElementTree.ParseError, AttributeError):
             raise InvalidSamlResponse("Impossible decode SAML response.")
 
@@ -125,7 +125,7 @@ class SamlAuthProviderHandler:
             enabled=True, metadata__contains=issuer
         ).first()
         if not saml_auth_provider:
-            raise InvalidSamlConfiguration("Unknown SAML issuer.")
+            raise InvalidSamlConfiguration("SAML auth provider not found.")
         return saml_auth_provider
 
     @classmethod

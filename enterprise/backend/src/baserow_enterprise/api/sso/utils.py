@@ -1,11 +1,12 @@
 from enum import Enum
-from typing import Optional
+from typing import Dict, Optional
 from urllib.parse import urlencode, urlparse
 
 from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from django.http import HttpResponse
 from django.shortcuts import redirect
+from django.urls import reverse
 
 from baserow.core.user.utils import generate_session_tokens_for_user
 
@@ -100,3 +101,24 @@ def redirect_user_on_success(
     valid_frontend_url = get_absolute_frontend_url_or_default(requested_original_url)
     redirect_url = urlencode_user_token_for_frontend_url(valid_frontend_url, user)
     return redirect(redirect_url)
+
+
+def get_saml_sso_login_url(
+    query_params: Dict[str, str],
+) -> str:
+    """
+    Returns the url to the SAML login page. The url is constructed based on the
+    request and the SAML configuration.
+
+    :param query_params: The already validated request query parameters to
+        encode in the login url.
+    :return: The relative url to the login page for the Baserow initiated SAML
+        SSO.
+    """
+
+    relative_url = reverse("api:enterprise:sso:saml:login")
+    if query_params:
+        query = {k: v for k, v in query_params.items() if v is not None}
+        relative_url = f"{relative_url}?{urlencode(query)}"
+
+    return relative_url

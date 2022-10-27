@@ -1,26 +1,46 @@
+import base64
+import io
 import urllib
+import zlib
+from urllib.parse import parse_qs, urlencode, urlparse
 
 from django.contrib.auth import get_user_model
 from django.shortcuts import reverse
+from django.test import Client
 from django.test.utils import override_settings
 
 import pytest
-from rest_framework.status import HTTP_200_OK, HTTP_400_BAD_REQUEST
+from defusedxml import ElementTree
+from rest_framework.status import (
+    HTTP_200_OK,
+    HTTP_400_BAD_REQUEST,
+    HTTP_402_PAYMENT_REQUIRED,
+)
+from saml2.xml.schema import validate as validate_saml_xml
 
+from baserow.core.user.exceptions import UserAlreadyExist
 from baserow_enterprise.auth_provider.handler import AuthProviderHandler, UserInfo
 
 
 @pytest.mark.django_db
 @override_settings(DEBUG=True)
 def test_saml_provider_get_login_url(api_client, data_fixture, enterprise_data_fixture):
-
-    _, token = enterprise_data_fixture.create_enterprise_admin_user_and_token()
-
     # create a valid SAML provider
     auth_provider_1 = enterprise_data_fixture.create_saml_auth_provider(
         domain="test1.com"
     )
     auth_provider_login_url = reverse("api:enterprise:sso:saml:login_url")
+
+    _, unauthorized_token = data_fixture.create_user_and_token()
+
+    response = api_client.get(
+        auth_provider_login_url,
+        format="json",
+        HTTP_AUTHORIZATION=f"JWT {unauthorized_token}",
+    )
+    assert response.status_code == HTTP_402_PAYMENT_REQUIRED
+
+    _, token = enterprise_data_fixture.create_enterprise_admin_user_and_token()
 
     # cannot create a SAML provider with an invalid domain or metadata
     response = api_client.get(
@@ -117,19 +137,77 @@ def test_saml_provider_get_login_url(api_client, data_fixture, enterprise_data_f
 
 @pytest.mark.django_db()
 @override_settings(DEBUG=True)
-def test_get_or_create_user_and_sign_in_via_saml_identity(
+def test_user_cannot_initiate_saml_sso_without_enterprise_license(
     api_client, data_fixture, enterprise_data_fixture
 ):
-    enterprise_data_fixture.create_enterprise_admin_user_and_token()
-
     auth_provider_1 = enterprise_data_fixture.create_saml_auth_provider(
         domain="test1.com"
     )
+    client = Client()
+    response = client.get(reverse("api:enterprise:sso:saml:login"))
+    assert response.status_code == 302
+    assert (
+        response.headers["Location"]
+        == "http://localhost:3000/login/error?error=errorSsoFeatureNotActive"
+    )
 
+
+def decode_saml_request(idp_redirect_url):
+    parsed_url = urllib.parse.urlparse(idp_redirect_url)
+    query_params = urllib.parse.parse_qsl(parsed_url.query)
+    encoded_saml_request = [v for k, v in query_params if k == "SAMLRequest"][0]
+    saml_request_xml = zlib.decompress(
+        base64.b64decode(encoded_saml_request), -15
+    ).decode("utf-8")
+    return ElementTree.parse(io.BytesIO(saml_request_xml.encode("utf-8")))
+
+
+@pytest.mark.django_db()
+@override_settings(DEBUG=True)
+def test_user_can_initiate_saml_sso_with_enterprise_license(
+    api_client, data_fixture, enterprise_data_fixture
+):
+    auth_provider_1 = enterprise_data_fixture.create_saml_auth_provider(
+        domain="test1.com"
+    )
+    _, token = enterprise_data_fixture.create_enterprise_admin_user_and_token()
+    client = Client()
+    sp_sso_saml_login_url = reverse("api:enterprise:sso:saml:login")
+    original_relative_url = "database/1/table/1/"
+    request_query_string = urlencode({"original": original_relative_url})
+
+    response = client.get(f"{sp_sso_saml_login_url}?{request_query_string}")
+    assert response.status_code == 302
+    idp_sign_in_url = response.headers["Location"]
+    idp_url_initial_part = (
+        "https://samltest.id/idp/profile/SAML2/Redirect/SSO?SAMLRequest="
+    )
+    assert idp_sign_in_url.startswith(idp_url_initial_part)
+    saml_request = decode_saml_request(idp_sign_in_url)
+    assert validate_saml_xml(saml_request) is None
+    response_query_params = parse_qs(urlparse(idp_sign_in_url).query)
+    assert response_query_params["RelayState"][0] == original_relative_url
+
+    response = client.get(f"{sp_sso_saml_login_url}?email=john@acme.it")
+    assert response.status_code == 302
+    assert (
+        response.headers["Location"]
+        == "http://localhost:3000/login/error?error=errorInvalidSamlRequest"
+    )
+
+
+@pytest.mark.django_db()
+@override_settings(DEBUG=True)
+def test_get_or_create_user_and_sign_in_via_saml_identity(
+    api_client, data_fixture, enterprise_data_fixture
+):
+    auth_provider_1 = enterprise_data_fixture.create_saml_auth_provider(
+        domain="test1.com"
+    )
     user_info = UserInfo("john@acme.com", "John")
 
     User = get_user_model()
-    assert User.objects.count() == 1
+    assert User.objects.count() == 0
 
     # test the user is created if not already present in the database
     user = AuthProviderHandler.get_or_create_user_and_sign_in_via_auth_provider(
@@ -140,7 +218,7 @@ def test_get_or_create_user_and_sign_in_via_saml_identity(
     assert user.email == user_info.email
     assert user.first_name == user_info.name
     assert user.password == ""
-    assert User.objects.count() == 2
+    assert User.objects.count() == 1
     assert user.groupuser_set.count() == 1
     assert user.auth_providers.filter(id=auth_provider_1.id).exists()
 
@@ -154,5 +232,14 @@ def test_get_or_create_user_and_sign_in_via_saml_identity(
         user_info, auth_provider_2
     )
 
-    assert User.objects.count() == 2
+    assert User.objects.count() == 1
     assert user.auth_providers.filter(id=auth_provider_2.id).exists()
+
+    # a disabled user will raise a UserAlreadyExist exception
+    user.is_active = False
+    user.save()
+
+    with pytest.raises(UserAlreadyExist):
+        AuthProviderHandler.get_or_create_user_and_sign_in_via_auth_provider(
+            user_info, auth_provider_2
+        )

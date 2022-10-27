@@ -42,6 +42,7 @@ class OperationPermissionContent(TypedDict):
 class RolePermissionManagerType(PermissionManagerType):
     type = "role"
     _role_cache: Dict[int, List[str]] = {}
+    _role_id_cache: Dict[str, int] = {}
     role_fallback = "NO_ROLE"
 
     def is_enabled(self, group):
@@ -53,26 +54,24 @@ class RolePermissionManagerType(PermissionManagerType):
 
         return "roles" in settings.FEATURE_FLAGS
 
-    def get_roles(self) -> List[Role]:
-        return Role.objects.all()
-
-    def role_uid_to_role(self, role_uid: str, valid_roles: List[Role] = None) -> Role:
+    def get_role_id(self, role_uid: str) -> int:
         """
-        Transforms a role_uid to a Role instance.
-        If the role is not known to this manager it will use the fallback role instead
-        :param role_uid: The uid of the role
-        :param valid_roles: The valid roles for this manager - used as a cache here
+        Returns the role id from the uid. If the role_uid is invalid a default role
+        id is returned. This method is memoized.
+
+        :param role_uid: Role uid.
+        :return: The role id.
         """
-        if valid_roles is None:
-            valid_roles = list(self.get_roles())
 
-        valid_role_uids = [role.uid for role in valid_roles]
-        valid_roles_uid_to_role_map = {role.uid: role for role in valid_roles}
+        if role_uid not in self._role_id_cache:
+            try:
+                role = Role.objects.get(uid=role_uid)
+            except Role.DoesNotExist:
+                role = Role.objects.get(uid=self.role_fallback)
 
-        if role_uid not in valid_role_uids:
-            role_uid = self.role_fallback
+            self._role_id_cache[role_uid] = role.id
 
-        return valid_roles_uid_to_role_map[role_uid]
+        return self._role_id_cache[role_uid]
 
     def get_user_role_assignments(
         self, group: Group, actor: AbstractUser, operation: Optional[Operation] = None
@@ -98,13 +97,6 @@ class RolePermissionManagerType(PermissionManagerType):
         if operation:
             roles.filter(role__operations__name=operation.type)
 
-        valid_roles = list(self.get_roles())
-
-        group_level_roles = [
-            (self.role_uid_to_role(g.permissions, valid_roles).id, g.group)
-            for g in GroupUser.objects.filter(user__id=actor.id)
-        ]
-
         result = list(roles)
 
         # TODO performance issue here when getting the scopes.
@@ -112,7 +104,15 @@ class RolePermissionManagerType(PermissionManagerType):
         # in the list.
         result.sort(key=cmp_to_key(compare_scopes))
 
-        return group_level_roles + [(r.role_id, r.scope) for r in result]
+        # Get the group level role by reading the GroupUser permissions property
+        group_level_role = (
+            self.get_role_id(
+                GroupUser.objects.get(user__id=actor.id, group=group).permissions
+            ),
+            group,
+        )
+
+        return [group_level_role] + [(r.role_id, r.scope) for r in result]
 
     def get_role_operations(self, role_id: int):
         """
